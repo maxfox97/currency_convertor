@@ -1,23 +1,74 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useRef, useState } from "react";
+import { Block } from "./Block";
+import "./index.scss";
+import currencyapi from "@everapi/currencyapi-js";
 
 function App() {
+  const [fromCurrency, setFromCurrency] = useState("UAH");
+  const [toCurrency, setToCurrency] = useState("USD");
+  const [fromPrice, setFromPrice] = useState(0);
+  const [toPrice, setToPrice] = useState(1);
+
+  const ratesRef = useRef({});
+
+  const client = new currencyapi(
+    "cur_live_uy2frFOnbpnyWgwq4KbVwr6YOboOoxWFVVrnjsGZ"
+  );
+
+  useEffect(() => {
+    client
+      .historical({
+        date: "01-01-2023",
+      })
+      .then((response) => {
+        // setRates(response.data);
+        ratesRef.current = response.data;
+        onChangeToPrice(1);
+      })
+      .catch((err) => {
+        console.warn(err);
+        alert("error data");
+      });
+  }, []);
+
+  const onChangeFromPrice = (value) => {
+    const price = value / ratesRef.current[fromCurrency]?.value;
+    const result = price * ratesRef.current[toCurrency]?.value;
+
+    setFromPrice(value);
+    setToPrice(result);
+  };
+
+  const onChangeToPrice = (value) => {
+    const price = value / ratesRef.current[toCurrency]?.value;
+    const result = price * ratesRef.current[fromCurrency]?.value;
+
+    setToPrice(value);
+    setFromPrice(result);
+  };
+
+  useEffect(() => {
+    onChangeFromPrice(fromPrice);
+  }, [fromCurrency]);
+
+  useEffect(() => {
+    onChangeToPrice(toPrice);
+  }, [toCurrency]);
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Block
+        value={fromPrice}
+        currency={fromCurrency}
+        onChangeCurrency={setFromCurrency}
+        onChangeValue={onChangeFromPrice}
+      />
+      <Block
+        value={toPrice}
+        currency={toCurrency}
+        onChangeCurrency={setToCurrency}
+        onChangeValue={onChangeToPrice}
+      />
     </div>
   );
 }
